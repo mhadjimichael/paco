@@ -84,11 +84,20 @@
 
                 <data android:mimeType="vnd.android.cursor.dir/vnd.google.paco.experiment" />
             </intent-filter>
+            <!-- handle http(s)://pacoapp.com/experiments?id=1234534735851520 -->
             <intent-filter>
-                <data android:scheme="pacoapp" />
+                <data android:host="pacoapp.com" android:scheme="http"></data>
+                <data android:host="pacoapp.com" android:scheme="https"></data>
+                <action android:name="android.intent.action.VIEW"></action>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
+            <!-- handle pacoapp://.... -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <action android:name="android.intent.action.BROWSABLE" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="pacoapp" android:host="*" />
             </intent-filter>
         </activity>
         
