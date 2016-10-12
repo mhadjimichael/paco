@@ -108,10 +108,10 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
   private View buttonView;
   private Button doOnPhoneButton;
   private Button doOnWebButton;
-  private TextView warningText;
 
   private List<SpeechRecognitionListener> speechRecognitionListeners = new ArrayList<SpeechRecognitionListener>();
   public static final int RESULT_SPEECH = 3;
+
 
   private LinearLayout inputsScrollPane;
   private DateTime formOpenTime;
@@ -156,10 +156,6 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
                                                                            mainLayout, true);
       buttonView = findViewById(R.id.ExecutorButtonLayout);
       buttonView.setVisibility(View.GONE);
-
-      warningText = (TextView) findViewById(R.id.webRecommendedWarningText);
-      warningText.setText(warningText.getText() + getString(R.string.use_browser) + "http://"
-                          + getString(R.string.about_weburl));
 
       doOnPhoneButton = (Button) findViewById(R.id.DoOnPhoneButton);
       doOnPhoneButton.setVisibility(View.GONE);
@@ -280,7 +276,7 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
         if (firstInput.getInput().getResponseType().equals(Input2.OPEN_TEXT)) {
           firstInput.requestFocus();
         }
-        formOpenTime = DateTime.now();
+        
       }
     }
   }
@@ -288,6 +284,9 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
   @Override
   protected void onPause() {
     super.onPause();
+    for (InputLayout  layout : inputs) {
+      layout.onPause();
+    }
     unregisterLocationListenerIfNecessary();
   }
 
@@ -417,6 +416,7 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
   private void showForm() {
     renderInputs();
     renderSaveButton();
+    formOpenTime = DateTime.now();
   }
 
   private void renderSaveButton() {
@@ -731,11 +731,11 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
       } else {
         speechRecognitionListeners.clear();
       }
-    } else if (requestCode >= InputLayout.CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
+    } else if (requestCode >= InputLayout.CAMERA_REQUEST_CODE && resultCode == RESULT_OK) { // camera picture
       for (InputLayout inputLayout : inputs) {
         inputLayout.cameraPictureTaken(requestCode);
       }
-    } else if (resultCode == RESULT_OK) {
+    } else if (resultCode == RESULT_OK) {   //gallery picture
       Uri selectedImage = data.getData();
       String[] filePathColumn = { MediaStore.Images.Media.DATA };
 
@@ -754,7 +754,7 @@ public class ExperimentExecutor extends ActionBarActivity implements ChangeListe
         e.printStackTrace();
       }
 
-    }
+    } 
   }
 
   private void handleSpeechRecognitionActivityResult(int resultCode, Intent data) {

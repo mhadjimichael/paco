@@ -70,6 +70,13 @@ pacoApp.controller('ExperimentCtrl', ['$scope', '$mdDialog', '$filter',
       groupIndex: null
     };
 
+    // temporarily comment this because it prevents loading experiments directly
+    // fix for bug https://github.com/google/paco/issues/1448
+    // regresses bug https://github.com/google/paco/issues/1272
+    // if ($scope.user === undefined) {
+    //   $location.path('/');
+    // }
+
     if ($location.hash()) {
       var newTabId = config.editTabs.indexOf($location.hash());
       if (newTabId !== -1) {
@@ -277,8 +284,14 @@ pacoApp.controller('ExperimentCtrl', ['$scope', '$mdDialog', '$filter',
       $scope.experiment.groups.push(angular.copy(template.group));
     };
 
-    $scope.remove = function(arr, idx) {
-      arr.splice(idx, 1);
+    $scope.remove = function(arr, index) {
+      arr.splice(index, 1);
+    };
+
+    $scope.swap = function(arr, index1, index2) {
+      var temp = arr[index2];
+      arr[index2] = arr[index1];
+      arr[index1] = temp;
     };
 
     $scope.convertBack = function(event) {
@@ -439,6 +452,10 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
     $scope.screenData = null;
     $scope.photoHeader = 'data:image/jpeg;base64,';
     $scope.photoMarker = '/9j/';
+    $scope.audioMarker = 'AAAAGGZ0eXBtc';
+    $scope.statsDate = new Date();
+    $scope.groupNames = [];
+    $scope.showGroup = 'all';
 
     $scope.switchView = function() {
       var newPath = $scope.currentView + '/' + $scope.experimentId;
@@ -467,11 +484,15 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
       }
     };
 
-    $scope.loadEvents = function() {
+    $scope.loadEvents = function(forceReload) {
+      forecReload = typeof forceReload !== 'undefined' ? forceReload : false;
       $scope.loading = true;
-      var loadingMore = ($scope.eventCursor !== null);
+      var loadingMore = ($scope.eventCursor !== null && !forceReload);
+      if (forceReload) {
+        $scope.eventCursor = null;
+      }
 
-      dataService.getEvents($scope.experimentId, $scope.restrict, $scope.anon, $scope.eventCursor).
+      dataService.getEvents($scope.experimentId, $scope.restrict, $scope.anon, $scope.showGroup, $scope.eventCursor).
       then(function(response) {
 
         $scope.scrolling(false);
@@ -485,7 +506,7 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
             $scope.eventCursor = null;
           }
 
-          if ($scope.events) {
+          if ($scope.events && !forceReload) {
             $scope.events = $scope.events.concat(response.data.events);
           } else {
             $scope.events = response.data.events;
@@ -543,13 +564,21 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
       });
     };
 
+    $scope.$watch('statsDate', function(newVal, oldVal) {
+      if(oldVal !== newVal) {
+        dataService.updateParticipantDateStats($scope.experimentId, $scope.statsDate, $scope.stats);
+      };
+    });
+
+
     $scope.loadStats = function() {
       $scope.loading = true;
       $scope.stats = null;
       $scope.currentView = 'stats';
 
-      dataService.getParticipantData($scope.experimentId, $scope.restrict).
+      dataService.getParticipantStats($scope.experimentId, $scope.statsDate, $scope.restrict, $scope.showGroup).
       then(function(result) {
+
         if (result.data) {
           $scope.stats = result.data;
           $scope.loading = false;
@@ -568,7 +597,16 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
       return (typeof(data) === 'string' &&
                 data.indexOf($scope.photoMarker) === 0);
     }
+    
+    $scope.isAudioData = function(data) {
+        return (typeof(data) === 'string' &&
+                  data.indexOf($scope.audioMarker) === 0);
+      }
 
+    $scope.makeAudioSrc = function(cell) {        
+      return "data:audio/mpeg;base64," + cell;	
+    }
+    
     $scope.removeUserChip = function() {
       var newPath = $scope.currentView + '/' + $scope.experimentId;
       $location.path(newPath);
@@ -603,6 +641,9 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
     experimentService.getExperiment($scope.experimentId).then(
       function(response) {
         $scope.experiment = response.data.results[0];
+        for (var i = 0; i < $scope.experiment.groups.length; i++) {
+          $scope.groupNames.push($scope.experiment.groups[i].name);
+        }
       });
 
     $scope.$watchCollection('showColumn', function(newVal, oldVal) {
@@ -619,6 +660,20 @@ pacoApp.controller('DataCtrl', ['$scope', '$mdDialog', '$location', '$filter',
     });
   }
 ]);
+
+pacoApp.controller('HelpCtrl', ['$scope', '$routeParams', 'config',
+  function($scope, $routeParams, config) {
+
+    $scope.helpLink = config.helpLinkBase;
+
+    if (angular.isDefined($routeParams.helpId)) {
+      var link = config.helpLinks[$routeParams.helpId];
+      if (angular.isDefined(link)) {
+        $scope.helpLink = config.helpLinkBase + '#' + link;
+      }
+    }
+
+}]);
 
 
 pacoApp.controller('ReportCtrl', ['$scope', '$mdDialog', 'dataService',
@@ -654,19 +709,39 @@ pacoApp.controller('ReportCtrl', ['$scope', '$mdDialog', 'dataService',
           $mdDialog.hide({data: csvData, type: $scope.reportType});
         });
     }
-  }]);
+}]);
 
 pacoApp.controller('GroupsCtrl', ['$scope', 'template',
   function($scope, template) {
     $scope.hiding = false;
+    $scope.defaultFeedback = 'Thanks for Participating!';
 
     $scope.dateToString = function(d) {
       var s = d.getUTCFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
       return s;
     };
 
+    $scope.findInputName = function(findName) {
+      var result = $scope.group.inputs.filter(function (obj) {
+        return obj.name === findName;
+      });
+      return (result.length > 0);
+    }
+
+    $scope.newInputName = function() {
+      var safeId = $scope.group.inputs.length + 1;
+      var newName = 'input' + safeId;
+
+      while ($scope.findInputName(newName)) {
+        safeId++;
+        newName = 'input' + safeId;
+      }
+      return 'input' + safeId;
+    }
+
     $scope.addInput = function(event, expandFn, index) {
       var input = angular.copy(template.input);
+      input.name = $scope.newInputName();
 
       if (index !== undefined) {
         $scope.group.inputs.splice(index, 0, input);
@@ -678,12 +753,6 @@ pacoApp.controller('GroupsCtrl', ['$scope', 'template',
       }
 
       event.stopPropagation();
-    };
-
-    $scope.swapInputs = function(event, index1, index2) {
-      var temp = $scope.group.inputs[index2];
-      $scope.group.inputs[index2] = $scope.group.inputs[index1];
-      $scope.group.inputs[index1] = temp;
     };
 
     $scope.toggleGroup = function($event) {
@@ -729,8 +798,12 @@ pacoApp.controller('InputCtrl', ['$scope', 'config', function($scope, config) {
     }
   });
 
-  $scope.addChoice = function() {
-    $scope.input.listChoices.push('');
+  $scope.addChoice = function(index) {
+    if (index !== undefined) {
+      $scope.input.listChoices.splice(index, 0, '');
+    } else {
+      $scope.input.listChoices.push('');
+    }
   }
 }]);
 

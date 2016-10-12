@@ -55,6 +55,17 @@ public class ExperimentHelper {
             && experiment.getExtraDataCollectionDeclarations().contains(ExperimentDAO.APP_INSTALL_DATA_COLLECTION);
   }
 
+  /**
+   * Returns whether the experiment has the accessibility logging flag set by the experiment
+   * organiser.
+   * @param experiment The running experiment
+   * @return Whether accessibility logging is enabled for the experiment.
+   */
+  public static boolean declaresAccessibilityLogging(ExperimentDAO experiment) {
+    return experiment.getExtraDataCollectionDeclarations() != null
+            && experiment.getExtraDataCollectionDeclarations().contains(ExperimentDAO.ACCESSIBILITY_LOGGING);
+  }
+
   public static boolean hasUserEditableSchedule(ExperimentDAO experiment) {
     List<ExperimentGroup> experimentGroups = experiment.getGroups();
     for (ExperimentGroup experimentGroup : experimentGroups) {
@@ -115,6 +126,15 @@ public class ExperimentHelper {
     return false;
   }
 
+  public static boolean isLogShutdown(ExperimentDAO experiment) {
+    List<ExperimentGroup> groups = experiment.getGroups();
+    for (ExperimentGroup experimentGroup : groups) {
+      if (experimentGroup.getLogShutdown()) {
+        return true;
+      }
+    }
+    return false;
+  }
 
 
   public static boolean isLogActions(ExperimentDAO experiment) {
@@ -140,12 +160,25 @@ public class ExperimentHelper {
       this.first = first;
       this.second = second;
     }
-
-
   }
 
-  public static List<Pair<ExperimentGroup, InterruptTrigger>> shouldTriggerBy(ExperimentDAO experiment, int event, String sourceIdentifier) {
-    List<Pair<ExperimentGroup, InterruptTrigger>> groupsThatTrigger = new ArrayList();
+  public static class Trio<S, T, U> {
+    public S first;
+    public T second;
+    public U third;
+
+    public Trio(S first, T second, U third) {
+      super();
+      this.first = first;
+      this.second = second;
+      this.third = third;
+    }
+  }
+
+
+  @SuppressWarnings("unchecked")
+  public static List<Trio<ExperimentGroup, InterruptTrigger, InterruptCue>> shouldTriggerBy(ExperimentDAO experiment, int event, String sourceIdentifier) {
+    List<Trio<ExperimentGroup, InterruptTrigger, InterruptCue>> groupsThatTrigger = new ArrayList();
     List<ExperimentGroup> groups = experiment.getGroups();
     for (ExperimentGroup experimentGroup : groups) {
       List<ActionTrigger> triggers = experimentGroup.getActionTriggers();
@@ -159,7 +192,9 @@ public class ExperimentHelper {
               continue;
             }
 
-            boolean usesSourceId = interruptCue.getCueCode() == InterruptCue.PACO_ACTION_EVENT || interruptCue.getCueCode() == InterruptCue.APP_USAGE;
+            boolean usesSourceId = interruptCue.getCueCode() == InterruptCue.PACO_ACTION_EVENT
+                    || interruptCue.getCueCode() == InterruptCue.APP_USAGE
+                    || interruptCue.getCueCode() == InterruptCue.APP_CLOSED;
             boolean sourceIdsMatch;
             boolean isExperimentActionTrigger = interruptCue.getCueCode() == InterruptCue.PACO_EXPERIMENT_JOINED_EVENT
                     || interruptCue.getCueCode() == InterruptCue.PACO_EXPERIMENT_ENDED_EVENT
@@ -178,7 +213,7 @@ public class ExperimentHelper {
               sourceIdsMatch = true;
             }
             if (cueCodeMatches && sourceIdsMatch) {
-              groupsThatTrigger.add(new Pair(experimentGroup, trigger));
+              groupsThatTrigger.add(new Trio<ExperimentGroup, InterruptTrigger, InterruptCue>(experimentGroup, trigger, interruptCue));
             }
           }
         }
@@ -201,11 +236,31 @@ public class ExperimentHelper {
     List<ExperimentGroup> listeningExperimentGroups  = new ArrayList();
     List<ExperimentGroup> experimentGroups = experiment.getGroups();
     for (ExperimentGroup experimentGroup : experimentGroups) {
-      if (experimentGroup.getBackgroundListen() && experimentGroup.getBackgroundListenSourceIdentifier().equals(sourceIdentifier)) {
-        listeningExperimentGroups.add(experimentGroup);
+      if (experimentGroup.getBackgroundListen()) {
+        String sourceFilter = experimentGroup.getBackgroundListenSourceIdentifier();
+        if (sourceFilter.equals("*") || sourceFilter.equals(sourceIdentifier)) {
+          listeningExperimentGroups.add(experimentGroup);
+        }
       }
     }
     return listeningExperimentGroups;
   }
 
+  /**
+   * Returns all experiment groups listening for accessibility events. If Paco gets extended to
+   * capture multiple accessibility events (apart from just permission events), this method could
+   * be extended to include a source identifier.
+   * @param experiment The experiment for which to get matching experiment groups
+   * @return A list of experiment groups listening for accessibility events
+   */
+  public static List<ExperimentGroup> isListeningForAccessibilityEvents(ExperimentDAO experiment) {
+    List<ExperimentGroup> listeningExperimentGroups = new ArrayList();
+    List<ExperimentGroup> experimentGroups = experiment.getGroups();
+    for (ExperimentGroup experimentGroup : experimentGroups) {
+      if (experimentGroup.getAccessibilityListen()) {
+        listeningExperimentGroups.add(experimentGroup);
+      }
+    }
+    return listeningExperimentGroups;
+  }
 }

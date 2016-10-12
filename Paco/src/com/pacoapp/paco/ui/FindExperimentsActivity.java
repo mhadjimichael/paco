@@ -207,6 +207,9 @@ public class FindExperimentsActivity extends ActionBarActivity implements Networ
     } else if (id == R.id.action_settings) {
       launchSettings();
       return true;
+    } else if (id == R.id.action_preferences) {
+      launchPreferences();
+      return true;
     } else if (id == R.id.action_about) {
        launchAbout();
       return true;
@@ -222,12 +225,20 @@ public class FindExperimentsActivity extends ActionBarActivity implements Networ
     } else if (id == R.id.action_email_paco_team) {
       launchEmailPacoTeam();
       return true;
+    }  else if (id == R.id.action_troubleshooting) {
+      launchTroubleshooting();
+      return true;
     } else if (id == android.R.id.home) {
       finish();
       return true;
     }
     return super.onOptionsItemSelected(item);
   }
+
+  private void launchTroubleshooting() {
+    startActivity(new Intent(this, TroubleshootingActivity.class));
+  }
+
 
   private void launchFindExperiments() {
     startActivity(new Intent(this, FindMyOrAllExperimentsChooserActivity.class));
@@ -252,6 +263,10 @@ public class FindExperimentsActivity extends ActionBarActivity implements Networ
   private void launchSettings() {
     startActivity(new Intent(this, SettingsActivity.class));
   }
+  
+  private void launchPreferences() {
+    startActivity(new Intent(this, PreferencesActivity.class));
+  }
 
   private void launchEula() {
     Intent eulaIntent = new Intent(this, EulaDisplayActivity.class);
@@ -271,7 +286,7 @@ public class FindExperimentsActivity extends ActionBarActivity implements Networ
     Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);
     String aEmailList[] = { getString(R.string.contact_email) };
     emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, aEmailList);
-    emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Paco Feedback");
+    emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, getString(R.string.email_subject_paco_feedback));
     emailIntent.setType("plain/text");
     startActivity(emailIntent);
   }
@@ -520,9 +535,7 @@ public class FindExperimentsActivity extends ActionBarActivity implements Networ
 
           creator.setText(buf.toString());
           creator.setOnClickListener(myButtonListener);
-        } else {
-          creator.setText(getContext().getString(R.string.unknown_author_text));
-        }
+        } 
 //        ImageView iv = (ImageView) view.findViewById(R.id.experimentIconView);
 //        iv.setImageBitmap(Bitmap.create(cursor.getString(iconColumn)));
       }
@@ -591,11 +604,11 @@ public class FindExperimentsActivity extends ActionBarActivity implements Networ
       public void run() {
         progressBar.setVisibility(View.GONE);
         if (msg != null) {
-          Toast.makeText(FindExperimentsActivity.this, "Download complete", Toast.LENGTH_LONG);
+          Toast.makeText(FindExperimentsActivity.this, R.string.experiment_list_download_complete, Toast.LENGTH_LONG);
           updateDownloadedExperiments(msg);
           saveRefreshTime();
         } else {
-          showFailureDialog("No experiment data retrieved. Try again.");
+          showFailureDialog(getString(R.string.could_not_retrieve_experiments_try_again_));
         }
       }
     });

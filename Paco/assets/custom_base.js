@@ -18,7 +18,7 @@ var paco = (function (init) {
   obj.createResponseForInput = function(input) {
     return { "name" : input.name, 
              "prompt" : input.text,
-             "isMultiselect" : input.isMultiselect,
+             "isMultiselect" : input.multiselect,
              "answer" : input.answer, 
              "responseType" : input.responseType
            };
@@ -57,6 +57,9 @@ var paco = (function (init) {
   };
 
   function validNumber(val) {
+    if (!val) {
+      return true;
+    }
     if (!isNumeric(val)) {
       return false;
     }
@@ -79,6 +82,7 @@ var paco = (function (init) {
   
   valid = function(input, inputHtml, response) { 
     if ((input.required && inputHtml.element[0].style.display != "none") && (!response.answer || response.answer.length === 0)) {
+    	// TODO i18n
       return { "succeeded" : false , "error" : "Response required for " + input.name, "name" : input.name};    
     } else if (!validValueForResponseType(response)) {
       return { "succeeded" : false , "error" : "Response required for " + name, "name" : name};    
@@ -138,6 +142,10 @@ var paco = (function (init) {
         return events;
       };
       
+      function getEventsForExperimentGroup() {
+        alert("not implemented!");
+      };
+      
       function getLastEvent() {
         getAllEvents();
         return events[events.length - 1];
@@ -146,7 +154,8 @@ var paco = (function (init) {
       return {
         saveEvent : saveEvent,
         getAllEvents: getAllEvents,
-        getLastEvent : getLastEvent
+        getLastEvent : getLastEvent,
+        getEventsForExperimentGroup : getEventsForExperimentGroup
       };
     };
 
@@ -167,7 +176,15 @@ var paco = (function (init) {
           loaded = true;
         }
         return events;
-      }
+      };
+      
+      function getEventsForExperimentGroup() {
+        if (!loaded) {
+          events = JSON.parse(window.db.getEventsForExperimentGroup());
+          loaded = true;
+        }
+        return events;
+      };
 
       function getLastEvent() {
         return JSON.parse(window.db.getLastEvent());
@@ -176,7 +193,8 @@ var paco = (function (init) {
       return {
         saveEvent : saveEvent,
         getAllEvents: getAllEvents,
-        getLastEvent : getLastEvent
+        getLastEvent : getLastEvent,
+        getEventsForExperimentGroup : getEventsForExperimentGroup
       };
     };
 
@@ -252,6 +270,11 @@ var paco = (function (init) {
         var events = db.getAllEvents();
         return events.slice(0..n);
       },
+      getResponseForItem  : getResponseForItem,
+      
+      getEventsForExperimentGroup : function() {
+        return db.getEventsForExperimentGroup();
+      },
 
       getResponsesForEventNTimesAgo : getResponsesForEventNTimesAgo,
 
@@ -318,7 +341,7 @@ var paco = (function (init) {
       if (!window.experimentLoader) {
         return null;
       } else {
-        return JSON.parse(window.experimentLoader.getgetEndOfDayReferredExperimentGroup());
+        return JSON.parse(window.experimentLoader.getEndOfDayReferredExperimentGroup());
       }
     };
 
@@ -356,6 +379,7 @@ var paco = (function (init) {
 
   obj.executor = (function() {
     if (!window.executor) {
+    	// TODO i18n
       window.executor = { done : function() { alert("done"); } };
     }
 
@@ -372,6 +396,7 @@ var paco = (function (init) {
     if (!window.photoService) {
       window.photoService = { 
         launch : function(callback) { 
+        	// TODO i18n
           alert("No photo support"); 
         } 
       };
@@ -395,9 +420,14 @@ var paco = (function (init) {
 	    if (!window.notificationService) {
 	      window.notificationService = { 
 	        createNotification : function(message) { 
+	        	// TODO i18n
 	          alert("No notification support"); 
 	        },
-	        removeNotification : function(message) { 
+	        createNotificationWithTimeout : function(message, timeout) { 
+            // TODO i18n
+            alert("No notification support"); 
+          },
+          removeNotification : function(message) { 
 		          alert("No notification support"); 
 		      },
           removeAllNotifications : function() {
@@ -410,7 +440,10 @@ var paco = (function (init) {
 	      createNotification : function(message) {
 	        window.notificationService.createNotification(message);
 	      }, 
-	      removeNotification : function(message) {
+	      createNotificationWithTimeout : function(message, timeout) {
+          notificationService.createNotificationWithTimeout(message, timeout);
+        },
+        removeNotification : function(message) {
 	    	  window.notificationService.removeNotification(message);
 	      },
         removeAllNotifications : function() {
@@ -419,17 +452,73 @@ var paco = (function (init) {
 	    };
 	  })();
 
+  obj.stringService = (function() {
+	    if (!window.strings) {
+	      window.strings = { 
+	        getString: function(stringId) { 
+	        	// TODO i18n
+	          alert("No strings support"); 
+	        },
+	        getString : function(stringId, formatArgs) { 
+		          alert("No strings support"); 
+		      }
+	        };
+	    }
 
+	    return {
+	      getString : function(stringId) {
+	        return window.strings.getString(stringId);
+	      }, 
+	      getStringFormatted : function(stringId, formatArgs) {
+		    return window.strings.getString(stringId, formatArgs);
+		  }
+	    };
+	  })();
+
+  obj.calendarService = (function() {
+    if (!window.calendar) {
+      window.calendar = { 
+        listEventInstances : function(startMillis, endMillis) { 
+          // TODO i18n
+          alert("No calendar support"); 
+        }
+      };
+    }
+
+    return {
+      listEventInstances : function(startMillis, endMillis) {
+        return window.calendar.listEventInstances(startMillis, endMillis);
+      }
+    };
+  })();
+  
   return obj;
 })();
 
 paco.renderer = (function() {
 
+  function escapeHtml(text) {
+    var map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
+  
   renderPrompt = function(input) {
-    var element = $(document.createElement("span"));
+    var divInputRow = $("<div>");
+    divInputRow.addClass("row indigo lighten-5");
+    divInputRow.css({"margin-bottom" : "0px", "padding-top" : "0.2em"});
+    var element = $(document.createElement("h6"));
+    element.addClass("left indigo lighten-5 prompt col s12");    
     element.text(input.text);
-    element.addClass("prompt");
-    return element;    
+    
+    divInputRow.append(element);
+    return divInputRow;    
   };
 
   shortTextVisualRender = function(input, response) {
@@ -465,8 +554,6 @@ paco.renderer = (function() {
       
     });
     parent.append(element);
-    
-    conditionalListener.addInput(input, response, parent);
     return element;
   };
 
@@ -477,6 +564,7 @@ paco.renderer = (function() {
   renderTextShort = function(input, response, parent, conditionalListener) {
     var rawElement = document.createElement("input");
     var element = $(rawElement);
+    element.addClass("light");
     element.attr("type", "text");
     element.attr("name", input.name);
     if (response.answer) {
@@ -489,9 +577,6 @@ paco.renderer = (function() {
 
       conditionalListener.inputChanged();
     });
-
-
-    conditionalListener.addInput(input, response, parent);
     
     return element;
   };
@@ -499,8 +584,8 @@ paco.renderer = (function() {
   renderNumber = function(input, response, parent, conditionalListener) {
     var rawElement = document.createElement("input");
     var element = $(rawElement);
-
-    element.attr("type", "text");
+    element.addClass("light");
+    element.attr("type", "number");
     element.attr("name", input.name);
     if (response.answer) {
       element.attr("value", parseInt(response.answer) - 1);
@@ -511,13 +596,12 @@ paco.renderer = (function() {
         element.removeClass("outlineElement");
       } catch (e) {
         element.addClass("outlineElement");
+    	// TODO i18n
         alert("bad value: " + e);            
       }
       conditionalListener.inputChanged();
     });
     parent.append(element);
-    
-    conditionalListener.addInput(input, response, parent);
 
     return element;
   };
@@ -528,7 +612,8 @@ paco.renderer = (function() {
     if (left) {
       var element = $(document.createElement("span"));
       element.html(left);
-      element.addClass("radioLabel");
+//      element.addClass("radio-label");
+      element.addClass("light");
       parent.append(element);
     }
 
@@ -539,13 +624,22 @@ paco.renderer = (function() {
     var steps = input.likertSteps;
     for(var i = 0; i < steps; i++) {
       var rawElement = document.createElement("input");
-      var element = $(rawElement);      
+      var element = $(rawElement);
+//      element.addClass("light"); // radio-input
+      element.addClass("yui3-cssreset");
       element.attr("type","radio");
       element.attr("name", input.name);
+      element.attr("id", input.name + "_" + i);
       if (selected && selected === i) {
         element.attr("checked", true);
       } 
       parent.append(element);
+      var label = $("<label>");
+      label.attr("for", input.name + "_" + i);
+      label.attr("value", "");
+      label.addClass("light");      
+      parent.append(label);
+      
       element.change(function(index) {
         return function() { 
           response.answer = index + 1;
@@ -553,70 +647,128 @@ paco.renderer = (function() {
         };        
       }(i));        
     }
+    
     var right = input.rightSideLabel || "";
     if (right) {
       var element = $(document.createElement("span"));
       element.text(right);
-      element.addClass("radioLabel");
+//      element.addClass("radio-label");
+      element.addClass("light");
       parent.append(element);
     }
-
-    conditionalListener.addInput(input, response, parent);
 
     return element;
   };
 
   renderList = function(input, response, parent, conditionalListener) {
-    var selected;
-    if (response.answer) {
-      selected = parseInt(response.answer) - 1;
-    }
+    
+    
     var steps = input.listChoices;
-
-
-    var s = $('<select name="' + input.name + '" ' + (input.multiselect ? 'multiple' : '') + '/>');
-    var startIndex = 0;
-    if (!input.multiselect) {
-      $("<option />", {value: 0, text: "Please select"}).appendTo(s);
-      startIndex = 1;
-    }
-    for(var i = 0; i < steps.length; i++) {
-      $("<option />", {value: (i + 1), text: steps[i]}).appendTo(s);
-    }
-    s.change(function() {
-      if (!input.multiselect) {
+    if (input.multiselect) {
+      var selected;
+      if (response.answer) {
+        var listAnswer = parseInt(response.answer) - 1;
+        selected = listAnswer.split(",");        
+      } else {
+        selected = [];
+      }
+      parent.addClass("left-align");
+      
+      for (var step = 0; step < steps.length; step++) {
+        var currentStep = steps[step];
+        var p = $('<div>'); // didn't work
+        p.css("line-height", "1"); // didnt work
+        p.addClass("input-field col s12 left-align");
+        parent.append(p);
+        
+        var lbl = $("<label>");
+        lbl.addClass("grey-text text-darken-2");
+        lbl.css("line-height", "1");
+        lbl.attr("for", input.name + "_" + step)
+        lbl.text(currentStep);
+        
+        
+        var chk = $("<input>");
+        chk.css("line-height", "1");
+        chk.attr("id", input.name + "_" + step);
+        chk.attr("type", "checkbox");
+//        chk.attr("value", step);
+        chk.attr("checked", (selected.indexOf(step + 1) != -1));
+        chk.addClass("filled-in ");
+        p.append(chk);
+        p.append(lbl);
+        //p.append($("<br>"));
+        
+        chk.change(function() { 
+            var values = [];
+            var i = 0;
+            var list = $('input:checkbox[id^="' + input.name  + '_"]').each(function() {
+              if (this.checked) {
+                values.push(i + 1);
+              }
+              i++;
+            });
+            
+            var valueString = values.join(",");
+            response.answer = valueString;
+//            alert("Values: " + valueString);
+            conditionalListener.inputChanged();        
+        });
+        
+                
+      }
+      
+    } else {
+      var selected;
+      if (response.answer) {
+        selected = parseInt(response.answer) - 1;
+      }
+      $('select').material_select('destroy');
+      var s = $('<select id="' + input.name + '" name="' + input.name + '" />');
+      var startIndex = 0;
+          $("<option />", {value: 0, text: "Please select"}).appendTo(s);
+          startIndex = 1;
+      for(var i = 0; i < steps.length; i++) {
+        $("<option />", {value: (i + 1), text: steps[i]}).appendTo(s);
+      }
+      s.addClass("light");
+      
+      parent.append(s)
+      
+      var label = $("<label>");
+      label.attr("for", input.name);
+      label.attr("text", "");
+      label.addClass("light");      
+      parent.append(label);
+   
+      $('select').material_select();
+      s.css("display", "block");
+      
+      s.change(function() {
         var val = this.selectedIndex; 
         response.answer = val;
-      } else {
-        var values = [];
-        var list = $("select[name=" + input.name + "]");
-        var listOptions = list.val();
-        for( x = 0; x < listOptions.length; x++) {
-          values.push(parseInt(x) + 1);
-        }
-        var valueString = values.join(",");
-        response.answer = valueString;
-      }
-      conditionalListener.inputChanged();
-    });
-    parent.append(s)
+        conditionalListener.inputChanged();
+      });
+      parent.append(s)
 
-    conditionalListener.addInput(input, response, parent);
-
-    return s;
+      return s;
+    }
   };
 
   renderPhotoButton = function(input, response, parent, conditionalListener) {
     var rawElement = document.createElement("input");
     var element = $(rawElement);
-
+    element.addClass("light");
     element.attr("type", "button");
     element.attr("name", input.name);
-    element.attr("value", "Click");
+    // TODO i18n
+    element.attr("value", "Add Picture");
+    element.css({"margin-right" : "1em"});
     
     
     var imgElement = $("<img/>", { src : "file:///android_asset/paco_sil.png"});    
-    imgElement.attr("height", "100");
+    imgElement.attr("height", "50");
+    imgElement.css({"border" : "1px solid #021a40"});
     element.click(function() {
       function cameraCallback(cameraData) {
         if (cameraData && cameraData.length > 0) {          
@@ -633,33 +785,39 @@ paco.renderer = (function() {
     imgElement.css("vertical-align", "bottom");
     parent.append(element);
     parent.append(imgElement);
-    
-    
-    conditionalListener.addInput(input, response, parent);
-
     return element;
   };
 
   renderInput = function(input, response, conditionalListener) {
-    var rawElement = document.createElement("div");    
-    var div = $(rawElement);
-    div.css({"margin-top":".5em", "margin-bottom" : "0.5em"});
-    div.append(renderPrompt(input));
-    div.append(renderBreak());
+    var panelDiv = $("<div>");
+    panelDiv.append(renderPrompt(input));
     
+    
+    
+//    div.append(renderBreak());
+    var divInputRow = $("<div>");
+    divInputRow.addClass("row");
+    divInputRow.css({"margin-bottom" : "0px"});
+    
+    var divInput = $("<div>").addClass("input-field col s12");
+    divInputRow.append(divInput);
+    panelDiv.append(divInputRow);
     if (input.responseType === "open text") {
-      renderTextShort(input, response, div, conditionalListener);
+      renderTextShort(input, response, divInput, conditionalListener);
     } else if (input.responseType === "likert") {
-      renderScale(input, response, div, conditionalListener);
+      renderScale(input, response, divInput, conditionalListener);
     } else if (input.responseType === "number") {
-      renderNumber(input, response, div, conditionalListener);
+      renderNumber(input, response, divInput, conditionalListener);
     } else if (input.responseType === "list") {
-      renderList(input, response, div, conditionalListener);
+      renderList(input, response, divInput, conditionalListener);
     } else if (input.responseType === "photo") {
-      renderPhotoButton(input, response, div, conditionalListener);
-    } 
-    div.append(renderBreak());
-    return { "element" : div, "response" : response };
+      renderPhotoButton(input, response, divInput, conditionalListener);
+    }
+    conditionalListener.addInput(input, response, panelDiv);
+
+    panelDiv.append(renderBreak());
+    
+    return { "element" : panelDiv, "response" : response };
   };
 
   renderInputs = function(experimentGroup, responseEvent, conditionalListener) {
@@ -673,28 +831,29 @@ paco.renderer = (function() {
   };
   
   renderBreak = function() {
-    var br = $(document.createElement("br"));
-    return br;
+    return $("<br>");
   };
 
   renderExperimentTitle = function(experiment) {
     var element = $(document.createElement("div"));
     element.text(experiment.title);
-    element.addClass("title");
+    element.addClass("title lighten-1 section no-pad-bot");
     return element;
   };
 
   renderSaveButton = function() {
     var saveButton = $(document.createElement("input"));
     saveButton.attr("type", "submit");
+    // TODO i18n
     saveButton.attr("value", "Save Response");
-    saveButton.css({"margin-top":".5em", "margin-bottom" : "0.5em"});
+    saveButton.css({"margin-top":".5em", "margin-bottom" : "0.5em", "width" : "90%"});
     return saveButton;
   };
 
   renderDoneButton = function(experiment) {
     var doneButton = document.createElement("input");
     doneButton.type="submit";
+    // TODO i18n
     doneButton.value = "Done";
     return doneButton;
   };
@@ -722,11 +881,13 @@ paco.renderer = (function() {
       removeErrors(event.responses);      
       if (mainValidationCallback) {
         mainValidationCallback(event);
+        saveButton.show();        
       }        
     };
 
     var invalidResponse = function(event) {
       addErrors(event);
+      saveButton.show();
     };
 
     var errorMarkingCallback = {
@@ -734,7 +895,12 @@ paco.renderer = (function() {
       "valid" : validResponse
     };
 
-    saveButton.click(function() { paco.validate(experimentGroup, responseEvent, inputHtmls, errorMarkingCallback) });
+    saveButton.off("click");
+    saveButton.click(function(event) { 
+      saveButton.hide(); 
+      paco.validate(experimentGroup, responseEvent, inputHtmls, errorMarkingCallback);
+      event.preventDefault();
+    });
   };
 
   registerDoneButtonCallback = function(doneButton) {
@@ -742,6 +908,7 @@ paco.renderer = (function() {
       if (window.executor) {
         window.executor.done();
       } else {
+    	  // TODO i18n 
         alert("All Done!");
       }
     });
@@ -771,6 +938,7 @@ paco.renderer = (function() {
     var strippedCode = scriptBody(customRenderingCode);
     scriptElement.text = strippedCode;    
     additionsDivId.append(scriptElement);
+
     var newSpan = $(document.createElement('span'));
     
     var html = htmlBody(customRenderingCode);
@@ -819,11 +987,13 @@ paco.renderer = (function() {
 
   renderDefaultFeedback = function(experimentGroup, db, element) {
     var subElement = $(document.createElement("div"));
+    // TODO i18n
     subElement.text("Thank you for participating!");
     subElement.addClass("title");
     element.append(subElement);
 
     var lastEvent = db.getLastEvent();
+    // TODO i18n
     element.append(renderPlainText("Scheduled Time: " + lastEvent.scheduledTime));
     element.append(renderBreak());
     element.append(renderPlainText("Response Time: " + lastEvent.responseTime));
@@ -912,7 +1082,7 @@ paco.renderer = (function() {
 
 
 
-
+// this is an example of a custom main function
 paco.execute = (function() {
 
   return function(experiment, experimentGroup, form_root) {
@@ -956,9 +1126,9 @@ paco.execute = (function() {
 
     var dbSaveOutcomeCallback = function(status) {
       if (status["status"] === "success") {    
-        form_root.html("Feedback");
-        paco.renderer.renderFeedback(experiment, experimentGroup, paco.db, form_root);
+    	  paco.executor.done();
       } else {
+    	// TODO i18n
         alert("Could not store data. You might try again. Error: " + status["error"]);
       }   
     };
@@ -984,6 +1154,14 @@ paco.execute = (function() {
     
 function runCustomExperiment(s0) {
   var form_root = $(document.createElement("div"));
+  form_root.addClass("container");
+  form_root.css({"width" : "95%"});
+  
+//  var form_root = $(document.createElement("div"));
+//  form_root.addClass("section");
+//  form_base.append(form_root);
+//  
+  
   $(document.body).append(form_root);
   var experiment = paco.experimentService.getExperiment();
   
@@ -1003,11 +1181,13 @@ function runCustomExperiment(s0) {
   var actionTriggerId = window.env.getValue("actionTriggerId");
   var actionTriggerSpecId = window.env.getValue("actionTriggerSpecId");
   var actionId = window.env.getValue("actionId");
-
+  // loads the custom code into the webview
   paco.renderer.loadCustomExperiment(experimentGroup, form_root);
   if (main) {
+    // calls the custom code's main function to render the custom experiment
     main(paco.experiment(), experimentGroup, form_root);
   } else {
+	// TODO i18n
     form_root.html("Could not initialize the experiment");
   }
 };

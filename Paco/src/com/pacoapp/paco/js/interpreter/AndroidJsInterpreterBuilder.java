@@ -11,12 +11,15 @@ import android.util.Log;
 
 import com.google.common.base.Strings;
 import com.pacoapp.paco.PacoConstants;
+import com.pacoapp.paco.js.bridge.JavascriptCalendarManager;
 import com.pacoapp.paco.js.bridge.JavascriptEventLoader;
 import com.pacoapp.paco.js.bridge.JavascriptExperimentLoader;
+import com.pacoapp.paco.js.bridge.JavascriptLocationManager;
 import com.pacoapp.paco.js.bridge.JavascriptLogger;
 import com.pacoapp.paco.js.bridge.JavascriptNotificationService;
 import com.pacoapp.paco.js.bridge.JavascriptPackageManager;
 import com.pacoapp.paco.js.bridge.JavascriptSensorManager;
+import com.pacoapp.paco.js.bridge.JavascriptStringResources;
 import com.pacoapp.paco.model.Experiment;
 import com.pacoapp.paco.model.ExperimentProviderUtil;
 import com.pacoapp.paco.shared.model2.ExperimentDAO;
@@ -29,17 +32,20 @@ public class AndroidJsInterpreterBuilder {
 
   }
 
-  public static JsInterpreter createInterpreter(Context context, Experiment androidExperiment, ExperimentDAO experiment, ExperimentGroup experimentGroup) {
+  public static JsInterpreter createInterpreter(Context context, Experiment androidExperiment, ExperimentDAO experiment, ExperimentGroup experimentGroup, Long actionTriggerSpecId, Long actionTriggerId, Long actionId) {
     JsInterpreter interpreter = new JsInterpreter();
     ExperimentProviderUtil experimentProvider = new ExperimentProviderUtil(context);
     bindLibraries(context, interpreter);
     interpreter.newBind("pacodb", new JavascriptEventLoader(experimentProvider, androidExperiment, experiment, experimentGroup));
     final JavascriptExperimentLoader obj = new JavascriptExperimentLoader(context, experimentProvider, experiment, androidExperiment, experimentGroup);
     interpreter.newBind("experimentLoader", obj);
-    interpreter.newBind("notificationService", new JavascriptNotificationService(context, experiment, experimentGroup));
+    interpreter.newBind("notificationService", new JavascriptNotificationService(context, experiment, experimentGroup, actionTriggerSpecId, actionTriggerId, actionId));
     interpreter.newBind("packageManager", new JavascriptPackageManager(context));
     interpreter.newBind("log", new JavascriptLogger());
     interpreter.newBind("sensors", new JavascriptSensorManager(context));
+    interpreter.newBind("strings", new JavascriptStringResources(context));
+    interpreter.newBind("calendar", new JavascriptCalendarManager(context));
+    interpreter.newBind("locationService", new JavascriptLocationManager(context));
     return interpreter;
 
   }

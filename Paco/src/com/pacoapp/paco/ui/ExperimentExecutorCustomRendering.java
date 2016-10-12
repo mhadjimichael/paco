@@ -77,7 +77,6 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.apps.paco.questioncondparser.Binding;
@@ -86,12 +85,15 @@ import com.google.common.base.Strings;
 import com.pacoapp.paco.PacoConstants;
 import com.pacoapp.paco.R;
 import com.pacoapp.paco.js.bridge.Environment;
+import com.pacoapp.paco.js.bridge.JavascriptCalendarManager;
 import com.pacoapp.paco.js.bridge.JavascriptEmail;
 import com.pacoapp.paco.js.bridge.JavascriptEventLoader;
 import com.pacoapp.paco.js.bridge.JavascriptExperimentLoader;
 import com.pacoapp.paco.js.bridge.JavascriptNotificationService;
 import com.pacoapp.paco.js.bridge.JavascriptPackageManager;
 import com.pacoapp.paco.js.bridge.JavascriptPhotoService;
+import com.pacoapp.paco.js.bridge.JavascriptSensorManager;
+import com.pacoapp.paco.js.bridge.JavascriptStringResources;
 import com.pacoapp.paco.model.Event;
 import com.pacoapp.paco.model.EventUtil;
 import com.pacoapp.paco.model.Experiment;
@@ -136,7 +138,6 @@ public class ExperimentExecutorCustomRendering extends ActionBarActivity impleme
   private View buttonView;
   private Button doOnPhoneButton;
   private Button doOnWebButton;
-  private TextView warningText;
 
   private List<SpeechRecognitionListener> speechRecognitionListeners = new ArrayList<SpeechRecognitionListener>();
 
@@ -191,9 +192,6 @@ public class ExperimentExecutorCustomRendering extends ActionBarActivity impleme
       buttonView = findViewById(R.id.ExecutorButtonLayout);
       buttonView.setVisibility(View.GONE);
 
-      warningText = (TextView) findViewById(R.id.webRecommendedWarningText);
-      warningText.setText(warningText.getText() + getString(R.string.use_browser) + "http://"
-          + getString(R.string.about_weburl));
 
       doOnPhoneButton = (Button) findViewById(R.id.DoOnPhoneButton);
       doOnPhoneButton.setVisibility(View.GONE);
@@ -261,7 +259,11 @@ public class ExperimentExecutorCustomRendering extends ActionBarActivity impleme
    */
   private void lookForActiveNotificationForExperiment() {
     NotificationHolder notificationHolder = null;
-    List<NotificationHolder> notificationHolders = experimentProviderUtil.getNotificationsFor(getExperiment().getExperimentDAO().getId().longValue(), experimentGroup.getName());
+    if (getExperiment() == null) {
+      return;
+    }
+    final long experimentId = getExperiment().getExperimentDAO().getId().longValue();
+    List<NotificationHolder> notificationHolders = experimentProviderUtil.getNotificationsFor(experimentId, experimentGroup.getName());
     if (notificationHolders != null && !notificationHolders.isEmpty()) {
       notificationHolder = notificationHolders.get(0); // TODO can we ever have more than one for a group?
     }
@@ -289,6 +291,9 @@ public class ExperimentExecutorCustomRendering extends ActionBarActivity impleme
   @Override
   protected void onPause() {
     super.onPause();
+    for (InputLayout inputLayout : inputs) {
+      inputLayout.onPause();
+    }
     unregisterLocationListenerIfNecessary();
   }
 
@@ -476,11 +481,14 @@ private void injectObjectsIntoJavascriptEnvironment() {
   // deprecated name - use "db" in all new experiments
   webView.addJavascriptInterface(javascriptEventLoader, "eventLoader");
 
+  webView.addJavascriptInterface(new JavascriptCalendarManager(this), "calendar");
   webView.addJavascriptInterface(new JavascriptEmail(this), "email");
-  webView.addJavascriptInterface(new JavascriptNotificationService(this, experiment.getExperimentDAO(), experimentGroup), "notificationService");
+  webView.addJavascriptInterface(new JavascriptNotificationService(this, experiment.getExperimentDAO(), experimentGroup, actionTriggerSpecId, actionTriggerId, actionId), "notificationService");
   webView.addJavascriptInterface(new JavascriptPhotoService(this), "photoService");
   webView.addJavascriptInterface(new JavascriptExecutorListener(experiment), "executor");
   webView.addJavascriptInterface(new JavascriptPackageManager(this), "packageManager");
+  webView.addJavascriptInterface(new JavascriptSensorManager(this), "sensors");
+  webView.addJavascriptInterface(new JavascriptStringResources(getApplicationContext()), "strings");
 
 }
 
@@ -754,7 +762,15 @@ public boolean onKeyDown(int keyCode, KeyEvent event) {
 
   void showFeedback() {
     Intent intent = new Intent(this, FeedbackActivity.class);
-    intent.putExtras(getIntent().getExtras());
+    final Bundle extras = getIntent().getExtras();
+
+    if (!extras.containsKey(Experiment.EXPERIMENT_SERVER_ID_EXTRA_KEY)) {
+      extras.putLong(Experiment.EXPERIMENT_SERVER_ID_EXTRA_KEY, experiment.getExperimentDAO().getId());
+    }
+    if (!extras.containsKey(Experiment.EXPERIMENT_GROUP_NAME_EXTRA_KEY)) {
+      extras.putString(Experiment.EXPERIMENT_GROUP_NAME_EXTRA_KEY, experimentGroup.getName());
+    }
+    intent.putExtras(extras);
     startActivity(intent);
   }
 

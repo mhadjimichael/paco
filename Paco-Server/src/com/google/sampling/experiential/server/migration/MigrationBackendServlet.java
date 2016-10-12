@@ -45,15 +45,18 @@ public class MigrationBackendServlet extends HttpServlet {
 
   @Override
   protected void doGet(final HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    log.info("MIGRATE BACKEND");
     final String requestorEmail = getRequestorEmail(req);
     final String migrationJobName = HttpUtil.getParam(req, "migrationName");
+    final String useTaskQueue = HttpUtil.getParam(req, "queue");
 
     final String jobId = migrationJobName + "_" +
             DigestUtils.md5Hex(requestorEmail +
             Long.toString(System.currentTimeMillis()));
-
-
     log.info("In migrate backend for job: " + jobId);
+    log.severe("In migrate backend for job: " + jobId);
+
+
     final ReportJobStatusManager statusMgr = new ReportJobStatusManager();
     statusMgr.startReport(requestorEmail, jobId);
 

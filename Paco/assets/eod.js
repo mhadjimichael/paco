@@ -94,11 +94,13 @@ var paco = (function (init) {
     }
   };
   
+  // TODO i18n
   valid = function(input, inputHtml, response) { 
-    if ((input.mandatory && inputHtml.element[0].style.display != "none") && (!response.answer || response.answer.length === 0)) {
-      return { "succeeded" : false , "error" : "Response mandatory for " + input.name, "name" : input.name};    
+    if ((input.required && inputHtml.element[0].style.display != "none") && (!response.answer || response.answer.length === 0)) {
+    	// TODO i18n
+      return { "succeeded" : false , "error" : "Response required for " + input.name, "name" : input.name};    
     } else if (!validValueForResponseType(response)) {
-      return { "succeeded" : false , "error" : "Response mandatory for " + name, "name" : name};    
+      return { "succeeded" : false , "error" : "Response required for " + name, "name" : name};    
     } else {
       return { "succeeded" : true };
     }
@@ -155,6 +157,10 @@ var paco = (function (init) {
         return events;
       };
       
+      function getEventsForExperimentGroup() {
+        alert("not implemented!");
+      };
+      
       function getLastEvent() {
         getAllEvents();
         return events[events.length - 1];
@@ -163,7 +169,8 @@ var paco = (function (init) {
       return {
         saveEvent : saveEvent,
         getAllEvents: getAllEvents,
-        getLastEvent : getLastEvent
+        getLastEvent : getLastEvent,
+        getEventsForExperimentGroup : getEventsForExperimentGroup
       };
     };
 
@@ -184,7 +191,15 @@ var paco = (function (init) {
           loaded = true;
         }
         return events;
-      }
+      };
+      
+      function getEventsForExperimentGroup() {
+        if (!loaded) {
+          events = JSON.parse(window.db.getEventsForExperimentGroup());
+          loaded = true;
+        }
+        return events;
+      };
 
       function getLastEvent() {
         return JSON.parse(window.db.getLastEvent());
@@ -193,7 +208,8 @@ var paco = (function (init) {
       return {
         saveEvent : saveEvent,
         getAllEvents: getAllEvents,
-        getLastEvent : getLastEvent
+        getLastEvent : getLastEvent,
+        getEventsForExperimentGroup : getEventsForExperimentGroup
       };
     };
 
@@ -271,6 +287,10 @@ var paco = (function (init) {
       },
       getResponseForItem  : getResponseForItem,
       
+      getEventsForExperimentGroup : function() {
+        return db.getEventsForExperimentGroup();
+      },
+
       getResponsesForEventNTimesAgo : getResponsesForEventNTimesAgo,
 
       getAnswerNTimesAgoFor : getAnswerNTimesAgoFor,
@@ -374,6 +394,7 @@ var paco = (function (init) {
 
   obj.executor = (function() {
     if (!window.executor) {
+    	// TODO i18n
       window.executor = { done : function() { alert("done"); } };
     }
 
@@ -390,6 +411,7 @@ var paco = (function (init) {
     if (!window.photoService) {
       window.photoService = { 
         launch : function(callback) { 
+        	// TODO i18n
           alert("No photo support"); 
         } 
       };
@@ -413,11 +435,19 @@ var paco = (function (init) {
 	    if (!window.notificationService) {
 	      window.notificationService = { 
 	        createNotification : function(message) { 
+	        	// TODO i18n
 	          alert("No notification support"); 
 	        },
-	        removeNotification : function(message) { 
+	        createNotification : function(message, timeout) { 
+            // TODO i18n
+            alert("No notification support"); 
+          },
+          removeNotification : function(message) { 
 		          alert("No notification support"); 
-		    }
+		      },
+          removeAllNotifications : function() {
+            alert("No notification support");
+          }
 	      };
 	    }
 
@@ -425,18 +455,75 @@ var paco = (function (init) {
 	      createNotification : function(message) {
 	        window.notificationService.createNotification(message);
 	      }, 
-	      removeNotification : function() {
-	    	  window.notificationService.removeNotification();
-	      }
+	      createNotification : function(message, timeout) {
+          notificationService.createNotification(message, timeout);
+        },
+        removeNotification : function(message) {
+	    	  window.notificationService.removeNotification(message);
+	      },
+        removeAllNotifications : function() {
+          window.notificationService.removeAllNotifications();
+        }
 	    };
 	  })();
 
+  obj.stringService = (function() {
+	    if (!window.strings) {
+	      window.strings = { 
+	        getString: function(stringId) { 
+	        	// TODO i18n
+	          alert("No strings support"); 
+	        },
+	        getString : function(stringId, formatArgs) { 
+		          alert("No strings support"); 
+		      }
+	        };
+	    }
 
+	    return {
+	      getString : function(stringId) {
+	        return window.strings.getString(stringId);
+	      }, 
+	      getStringFormatted : function(stringId, formatArgs) {
+		    return window.strings.getString(stringId, formatArgs);
+		  }
+	    };
+	  })();
+
+  obj.calendarService = (function() {
+    if (!window.calendar) {
+      window.calendar = { 
+        listEventInstances : function(startMillis, endMillis) { 
+          // TODO i18n
+          alert("No calendar support"); 
+        }
+      };
+    }
+
+    return {
+      listEventInstances : function(startMillis, endMillis) {
+        return window.calendar.listEventInstances(startMillis, endMillis);
+      }
+    };
+  })();
+  
   return obj;
 })();
 
 paco.renderer = (function() {
 
+  function escapeHtml(text) {
+    var map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
+  
   renderPrompt = function(input) {
     var element = $(document.createElement("h6"));
     element.addClass("left light");
@@ -520,6 +607,7 @@ paco.renderer = (function() {
         element.removeClass("outlineElement");
       } catch (e) {
         element.addClass("outlineElement");
+    	// TODO i18n
         alert("bad value: " + e);            
       }
       conditionalListener.inputChanged();
@@ -546,7 +634,6 @@ paco.renderer = (function() {
     }
     var steps = input.likertSteps;
     for(var i = 0; i < steps; i++) {
-      
       var rawElement = document.createElement("input");
       var element = $(rawElement);
 //      element.addClass("light"); // radio-input
@@ -569,8 +656,7 @@ paco.renderer = (function() {
           response.answer = index + 1;
           conditionalListener.inputChanged();
         };        
-      }(i));     
-      
+      }(i));        
     }
     
     var right = input.rightSideLabel || "";
@@ -778,6 +864,7 @@ paco.renderer = (function() {
   renderSaveButton = function() {
     var saveButton = $(document.createElement("input"));
     saveButton.attr("type", "submit");
+    // TODO i18n
     saveButton.attr("value", "Save Response");
     saveButton.css({"margin-top":".5em", "margin-bottom" : "0.5em"});
     return saveButton;
@@ -786,6 +873,7 @@ paco.renderer = (function() {
   renderDoneButton = function(experiment) {
     var doneButton = document.createElement("input");
     doneButton.type="submit";
+    // TODO i18n
     doneButton.value = "Done";
     return doneButton;
   };
@@ -840,6 +928,7 @@ paco.renderer = (function() {
       if (window.executor) {
         window.executor.done();
       } else {
+    	  // TODO i18n 
         alert("All Done!");
       }
     });
@@ -868,8 +957,7 @@ paco.renderer = (function() {
     scriptElement.type = 'text/javascript';
     
     var strippedCode = scriptBody(customRenderingCode);
-    scriptElement.text = strippedCode;
-    
+    scriptElement.text = strippedCode;    
     additionsDivId.append(scriptElement);
 
     var newSpan = $(document.createElement('span'));
@@ -886,7 +974,8 @@ paco.renderer = (function() {
   };
 
   loadCustomExperiment = function(experimentGroup, rootPanel) {    
-    var additionsDivId = $(document.createElement("div"));    
+    var additionsDivId = $(document.createElement("div"));
+    
     var customRenderingCode = experimentGroup.customRenderingCode;
     var newHtml = $(document.createElement('div'));
     newHtml.html(customRenderingCode);
@@ -919,11 +1008,13 @@ paco.renderer = (function() {
 
   renderDefaultFeedback = function(experimentGroup, db, element) {
     var subElement = $(document.createElement("div"));
+    // TODO i18n
     subElement.text("Thank you for participating!");
     subElement.addClass("title");
     element.append(subElement);
 
     var lastEvent = db.getLastEvent();
+    // TODO i18n
     element.append(renderPlainText("Scheduled Time: " + lastEvent.scheduledTime));
     element.append(renderBreak());
     element.append(renderPlainText("Response Time: " + lastEvent.responseTime));
@@ -1011,9 +1102,10 @@ paco.renderer = (function() {
       if (!input) {
         continue;
       }
+      
       responsesHtml += "<div class=\"row\" style=\"margin-bottom: 8px;\">";
-      responsesHtml += "<h6 class=\"left indigo-text\">";
-      responsesHtml += input.text;
+      responsesHtml += "<h6 class=\"left indigo-text\">";      
+      responsesHtml += input.text;      
       responsesHtml += "</h6><br>";
       responsesHtml += "<p class=\"black-text\">";
       responsesHtml += "&nbsp;&nbsp;&nbsp;"
@@ -1021,6 +1113,7 @@ paco.renderer = (function() {
         responsesHtml += "<img src='data:image/jpg;base64," + response["answer"] + "' width=150>";
       } else if (input.responseType === "location") {
         responsesHtml += response["answer"];
+        // TODO i18n
         responsesHtml += "&nbsp;&nbsp;&nbsp;<a href='file:///android_asset/map.html?inputId=" + response["name"] + "'>Maps</a>";
       } else if (input.responseType === "list") {
         
@@ -1030,32 +1123,36 @@ paco.renderer = (function() {
           if (!input.multiselect) {
             answer = parseInt(answer);
             var index = answer;
-            listChoiceName = input.listChoices[index];
+            listChoiceName = input.listChoices[index - 1];
           } else {
             var indices = answer.split(",");
-            for (var i = 0; i < indices.length; i++) {
-              if (i > 0) {
+            for (var j = 0; j < indices.length; j++) {
+              if (j > 0) {
                 listChoiceName += ", ";
               }
-              var index = indices[i]; 
+              var index = indices[j]; 
               index -= 1;
               if (index < 0) {
                 index = 0;
               }
               listChoiceName += input.listChoices[index];
             }
-          }
+          } 
           
         }       
         responsesHtml += listChoiceName;
       } else {
-        responsesHtml += response["answer"];
+        var escapedResponse = escapeHtml(response["answer"]);
+        //confirm("escaped response = |" + escapedResponse +"|");
+        responsesHtml += escapedResponse;
       }
       responsesHtml += "</p></div>";
     }
+
     element.html(responsesHtml);
   };
 
+  // TODO i18n
   var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   
   renderDailyPingResponsesPanel = function(referredExperimentGroupInputs, 
@@ -1127,11 +1224,17 @@ paco.executeEod = (function() {
     }
     
     function isActive(eventDate, now, triggerTime, timeout) { 
+      var nt = now.getTime(); 
+			var eventDateMidnight = new Date(eventDate.getFullYear(), 
+                                           eventDate.getMonth(), 
+                                           eventDate.getDate()).getTime();
+      var ft = eventDateMidnight + triggerTime.fixedTimeMillisFromMidnight + timeout;
+      //var active = nt <= ft;
+      //alert("nt = " + nt + ", edt = " + edt + ", ft = " + ft + ", active = " + active );
+      
       return eventDate.getDate() == now.getDate() || 
              eventDate.getDate() == (now.getDate() - 1)  && 
-                 now.getTime() <= new Date(eventDate.getFullYear(), 
-                                           eventDate.getMonth(), 
-                                           eventDate.getDate()).getTime() + triggerTime + timeout; 
+                 now.getTime() <= ft; 
     };
     
     var getActiveEventsWithoutEod = function(referredExperimentGroup, experimentGroup, db) {      
@@ -1152,7 +1255,7 @@ paco.executeEod = (function() {
         var eventDateTime = new Date(event.responseTime);
         if (!isActive(eventDateTime, now, triggerTime, timeout)) {
           // maybe build the list of already expired events to show as well.
-          break;
+          continue;
         }
         var eventGroupName = event.experimentGroupName;
         if (!eventGroupName) {
@@ -1216,6 +1319,7 @@ paco.executeEod = (function() {
           renderEvent();
         }
       } else {
+    	  // TODO i18n
         alert("Could not store data. You might try again. Or contact the researcher running the study. Error: " + status["error"]);
       }   
     };
@@ -1237,6 +1341,7 @@ paco.executeEod = (function() {
       if (atLeastOneAnswer) {
         paco.db.saveEvent(event, dbSaveOutcomeCallback);
       } else {
+    	  //TODO i18n
         alert("You cannot submit an empty response.");
       } 
     };
@@ -1249,9 +1354,11 @@ paco.executeEod = (function() {
     var renderEvent = function() {
       unsavedEdits = false;
       var currentEvent = unfinishedDailyEvents[currentPingIndex];
+      
       form_root.append(paco.renderer.renderDailyPingResponsesPanel(referredExperimentGroup.inputs, 
           currentEvent, currentPingIndex, pingCount));
       if (submitted.indexOf(currentEvent.responseTime) != -1) {
+    	  // TODO i18n
         $("#eod-questions").html("<b>Already replied</b>");
       } else {
        // prepare response collector
@@ -1319,6 +1426,7 @@ paco.executeEod = (function() {
         $("#ping-left-nav").off("click");
         $("#ping-left-nav").on("click", function() {
           if (unsavedEdits) {
+        	  // TODO i18n
             var r = confirm("You have not submitted the work on this page. Are you sure to leave this page?");
             if (r == true) {
               currentPingIndex -= 1;
@@ -1338,6 +1446,7 @@ paco.executeEod = (function() {
         $("#ping-right-nav").off("click");
         $("#ping-right-nav").on("click", function() {
           if (unsavedEdits) {
+        	  // TODO i18n
             var r = confirm("You have not submitted the work on this page. Are you sure to leave this page?");
             if (r == true) {
               currentPingIndex += 1;
@@ -1355,6 +1464,7 @@ paco.executeEod = (function() {
     
     function exit() {
       if (unsavedEdits || submitted.length < unfinishedDailyEvents.length) {
+    	  // TODO i18n
         var answer = confirm("You have not submitted responses for all daily events. Are you sure you want to leave?");
         if (answer) {
             paco.executor.done();
@@ -1369,6 +1479,7 @@ paco.executeEod = (function() {
     if (unfinishedDailyEvents.length > 0 && submitted.length < unfinishedDailyEvents.length) {      
       renderEvent();      
     } else {
+    	// TODO i18n
       $("#response-banner").html(paco.renderer.renderPlainText("No active daily responses"));
       $("#submit-button").prop("disabled", true);
     }
