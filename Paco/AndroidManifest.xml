@@ -17,16 +17,14 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.pacoapp.paco"
-    android:versionCode="155"
-    android:versionName="4.2.17" xmlns:tools="http://schemas.android.com/tools">
+    android:versionCode="135"
+    android:versionName="4.1.13" xmlns:tools="http://schemas.android.com/tools">
     <uses-feature android:name="android.hardware.location" android:required="false"/>
     <uses-feature android:name="android.hardware.telephony" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     
     <application
-        android:name="com.pacoapp.paco.PacoApplication"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:allowBackup="false"
@@ -40,7 +38,7 @@
 
         <activity android:name="com.pacoapp.paco.ui.MyExperimentsActivity" 
             android:label="Paco"
-            android:icon="@drawable/ic_launcher" >
+            android:icon="@drawable/ic_launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -51,7 +49,7 @@
         <activity
             android:name="com.pacoapp.paco.ui.FindExperimentsActivity"
             android:label="Experiment Hub"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+            android:configChanges="orientation|keyboardHidden"
             android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -63,15 +61,14 @@
         <activity
             android:name="com.pacoapp.paco.ui.FindMyExperimentsActivity"
             android:label="My Invitations"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+            android:configChanges="orientation|keyboardHidden"
             android:screenOrientation="portrait" >
         </activity>
         
         <activity
             android:name="com.pacoapp.paco.ui.ExperimentDetailActivity"
             android:label="Join Experiment"
-            android:screenOrientation="portrait" 
-            android:configChanges="locale|layoutDirection" >
+            android:screenOrientation="portrait"  >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.EDIT" />
@@ -87,36 +84,45 @@
 
                 <data android:mimeType="vnd.android.cursor.dir/vnd.google.paco.experiment" />
             </intent-filter>
+            <!-- handle http(s)://pacoapp.com/experiments?id=1234534735851520 -->
             <intent-filter>
-                <data android:scheme="pacoapp" />
+                <data android:host="pacoapp.com" android:scheme="http"></data>
+                <data android:host="pacoapp.com" android:scheme="https"></data>
+                <action android:name="android.intent.action.VIEW"></action>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
+            <!-- handle pacoapp://.... -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <action android:name="android.intent.action.BROWSABLE" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="pacoapp" android:host="*" />
             </intent-filter>
         </activity>
         
         <activity
             android:name="com.pacoapp.paco.ui.InformedConsentActivity"
             android:label="Informed Consent"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+            android:configChanges="orientation|keyboardHidden"
             android:screenOrientation="portrait" />
         
         <activity
             android:name="com.pacoapp.paco.ui.PostJoinInstructionsActivity"
             android:label="Participation Instructions"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+            android:configChanges="orientation|keyboardHidden"
             android:screenOrientation="portrait" />
         
         
         <activity
             android:name="com.pacoapp.paco.ui.ExperimentGroupPicker"
             android:label="Pick Group to Respond"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+            android:configChanges="orientation|keyboardHidden"
             android:screenOrientation="portrait" />
         <activity
             android:name="com.pacoapp.paco.ui.ExperimentExecutor"
             android:label="Experiment Form"
-            android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+            android:configChanges="orientation|keyboardHidden"
             android:windowSoftInputMode="stateHidden" 
             android:screenOrientation="portrait" >
             <intent-filter>
@@ -128,33 +134,29 @@
                 <activity
             android:name="com.pacoapp.paco.ui.ExperimentExecutorCustomRendering" 
             android:label="Experiment Form"
-             android:configChanges="orientation|keyboardHidden|locale|layoutDirection"
+             android:configChanges="orientation|keyboardHidden"
             android:windowSoftInputMode="stateHidden" 
             android:screenOrientation="portrait" 
             />
         
         <activity
             android:name="com.pacoapp.paco.ui.FeedbackActivity"
-            android:noHistory="true" 
-            android:configChanges="locale|layoutDirection">
+            android:noHistory="true" >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
                 <data android:mimeType="vnd.android.cursor.item/vnd.google.paco.experiment" />
             </intent-filter>
         </activity>
-        <activity android:name="com.pacoapp.paco.ui.WelcomeActivity" android:configChanges="locale|layoutDirection"/>
+        <activity android:name="com.pacoapp.paco.ui.WelcomeActivity" />
         <activity android:name="com.google.android.apps.paco.AccountChooser" 
-            android:label="Account Chooser"
-            android:configChanges="locale|layoutDirection"/>
-        <activity android:name="com.pacoapp.paco.ui.SplashActivity"
-            android:configChanges="locale|layoutDirection"/>
+            android:label="Account Chooser"/>
+        <activity android:name="com.pacoapp.paco.ui.SplashActivity"/>
         
         <activity
             android:name="com.pacoapp.paco.ui.ESMSignalViewer"
             android:label="ESM Signal Viewer"
-            android:screenOrientation="portrait" 
-            android:configChanges="locale|layoutDirection">
+            android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="com.google.android.apps.paco.ESM_SIGNALS" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -169,30 +171,29 @@
         </activity>
         <activity
             android:name="com.pacoapp.paco.ui.RawDataActivity"
-            android:label="Paco Raw Data Viewer" 
-            android:configChanges="locale|layoutDirection">
+            android:label="Paco Raw Data Viewer" >
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <activity android:name="com.pacoapp.paco.ui.ContactOptionsActivity" android:configChanges="locale|layoutDirection" android:label="Contact Options"/>
-        <activity android:name="com.pacoapp.paco.ui.HelpActivity" android:configChanges="locale|layoutDirection" android:label="Help"/>
-        <activity android:name="com.pacoapp.paco.ui.EulaDisplayActivity" android:configChanges="locale|layoutDirection" />
-        <activity android:name="com.pacoapp.paco.ui.OpenSourceLicenseListActivity" android:configChanges="locale|layoutDirection"
+        <activity android:name="com.pacoapp.paco.ui.ContactOptionsActivity" android:label="Contact Options"/>
+        <activity android:name="com.pacoapp.paco.ui.HelpActivity" android:label="Help"/>
+        <activity android:name="com.pacoapp.paco.ui.EulaDisplayActivity" />
+        <activity android:name="com.pacoapp.paco.ui.OpenSourceLicenseListActivity"
             android:label="Opensource" />
 <!-- New UI -->
         <activity
-            android:name="com.pacoapp.paco.ui.ScheduleListActivity" android:label="Experiment Schedules" android:configChanges="locale|layoutDirection">
+            android:name="com.pacoapp.paco.ui.ScheduleListActivity" android:label="Experiment Schedules">
         </activity>
          <activity android:name="com.pacoapp.paco.ui.SchedulePagerActivity"
-             android:label="Experiment Schedule Details" android:configChanges="locale|layoutDirection">
+             android:label="Experiment Schedule Details">
             <meta-data android:name="android.support.PARENT_ACTIVITY"
                 android:value=".ScheduleListActivity"/>
          </activity>
             
         <activity
             android:name="com.pacoapp.paco.ui.ScheduleDetailActivity"
-            android:label="Schedule Details" android:configChanges="locale|layoutDirection"
+            android:label="Schedule Details"
             android:parentActivityName="com.pacoapp.paco.ui.ScheduleListActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -201,22 +202,8 @@
      
            <activity
             android:name="com.pacoapp.paco.ui.SettingsActivity"
-            android:configChanges="locale|layoutDirection"
             android:label="@string/title_activity_settings" >
         </activity>
-        
-         <activity
-            android:name="com.pacoapp.paco.ui.PreferencesActivity"
-            android:configChanges="locale|layoutDirection"
-            android:label="@string/title_activity_settings" >
-        </activity>
-        
-         <activity
-            android:name="com.pacoapp.paco.ui.TroubleshootingActivity"
-            android:label="@string/title_troubleshooting" >
-        </activity>
-
-           
      <!--  end new ui -->   
         <!-- services -->
         <service android:name="com.pacoapp.paco.triggering.NotificationCreatorService" >
@@ -232,17 +219,6 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </service>
-
-        <service android:name=".sensors.android.RuntimePermissionMonitorService"
-            android:label="@string/app_name"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/runtime_permissions_accessibility_config" />
         </service>
         <service android:name="com.pacoapp.paco.net.SyncService" />
         <service android:name="com.pacoapp.paco.net.ServerCommunicationService" />
@@ -265,7 +241,8 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name="com.pacoapp.paco.os.NetworkChangeReceiver">
+            android:name="com.pacoapp.paco.os.NetworkChangeReceiver"
+            android:process=":remote" >
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
             </intent-filter>
@@ -295,7 +272,7 @@
             android:authorities="com.google.android.apps.paco.ExperimentProvider"
             android:exported="false" />
 
-        <receiver android:name="com.pacoapp.paco.sensors.android.BroadcastTriggerReceiver" android:enabled="true">
+        <receiver android:name="com.pacoapp.paco.sensors.android.BroadcastTriggerReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.PHONE_STATE_CHANGED" />
                 <action android:name="android.intent.action.PHONE_STATE" />
@@ -306,13 +283,7 @@
                 <action android:name="com.pacoapp.paco.action.PACO_TRIGGER" />
                 <action android:name="com.pacoapp.paco.action.PACO_EXPERIMENT_JOINED_ACTION" />
                 <action android:name="com.pacoapp.paco.action.PACO_EXPERIMENT_ENDED_ACTION" />
-                <action android:name="com.pacoapp.paco.action.PACO_EXPERIMENT_RESPONSE_RECEIVED_ACTION" />     
-                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
-            </intent-filter>            
-            <intent-filter>
-                <action android:name="android.intent.action.PACKAGE_REMOVED" />
-                <action android:name="android.intent.action.PACKAGE_ADDED" />
-                <data android:scheme="package" />
+                <action android:name="com.pacoapp.paco.action.PACO_EXPERIMENT_RESPONSE_RECEIVED_ACTION" />
             </intent-filter>
         </receiver>
         
@@ -349,10 +320,8 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.GET_TASKS"/>
     <uses-permission android:name="com.android.browser.permission.READ_HISTORY_BOOKMARKS" />
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
-    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-sdk android:minSdkVersion="11"  android:targetSdkVersion="22"></uses-sdk>
